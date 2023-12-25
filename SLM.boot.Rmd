@@ -1,0 +1,190 @@
+---
+title: "School failures on absence and study time"
+author: "Samantha Gouveia"
+date: "12/22/2023"
+output:
+ html_document:
+ toc: yes
+ toc_depth: 4
+ toc_float: yes
+ fig_width: 6
+ fig_caption: yes
+ number_sections: yes
+ theme: readable
+editor_options:
+ chunk_output_type: console
+---
+
+```{=html}
+
+<style type="text/css">
+
+/* Cascading Style Sheets (CSS) is a stylesheet language used to describe the presentation of a document written in HTML or XML. it is a simple mechanism for adding style (e.g., fonts, colors, spacing) to Web documents. */
+
+h1.title {  /* Title - font specifications of the report title */
+  font-size: 24px;
+  color: DarkRed;
+  text-align: center;
+  font-family: "Gill Sans", sans-serif;
+}
+h4.author { /* Header 4 - font specifications for authors  */
+  font-size: 20px;
+  font-family: system-ui;
+  color: DarkRed;
+  text-align: center;
+}
+h4.date { /* Header 4 - font specifications for the date  */
+  font-size: 18px;
+  font-family: system-ui;
+  color: DarkBlue;
+text-align: center;
+}
+h1 { /* Header 1 - font specifications for level 1 section title  */
+    font-size: 22px;
+    font-family: system-ui;
+    color: navy;
+    text-align: left;
+}
+h2 { /* Header 2 - font specifications for level 2 section title */
+    font-size: 20px;
+    font-family: "Times New Roman", Times, serif;
+    color: navy;
+    text-align: left;
+}
+
+h3 { /* Header 3 - font specifications of level 3 section title  */
+    font-size: 18px;
+    font-family: "Times New Roman", Times, serif;
+    color: navy;
+    text-align: left;
+}
+
+h4 { /* Header 4 - font specifications of level 4 section title  */
+    font-size: 18px;
+    font-family: "Times New Roman", Times, serif;
+    color: darkred;
+    text-align: left;
+}
+
+body { background-color:white; }
+
+.highlightme { background-color:yellow; }
+
+p { background-color:white; }
+
+</style>
+```
+
+
+
+# Introduction 
+The data set used focuses on the alcohol consumption of student in secondary school. The data was collected through a survey of students in a math language course at two different schools. We are looking specifically at the correlation between study time and absences. 
+
+
+
+# Data set 
+ The data set has 32 independent variables and 1 dependent variable, the dependent variable being failure. The data will be focused on school Absences using simple linear regression.
+
+```{r setup, include=FALSE}
+s <- read.csv("https://raw.githubusercontent.com/sgouveia23/Assignment-2-data/main/student-mat.csv", header = TRUE )
+
+   library(knitr)
+   library(leaflet)
+   library(EnvStats)
+   library(MASS)
+   library(phytools)
+   library(boot)
+   library(psych)
+   library(tinytex)
+
+   
+   # Specifications of outputs of code in code chunks
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,  
+    results = TRUE, comment = FALSE, options(digits = 2)   
+                      )   
+```
+
+# Results
+
+# Pair wise plot 
+
+A pair wise scatter plot is being preformed to show the correlation between variables that do not already correlate with other independent variables.
+```{r Pairwise scatterplot, echo = FALSE}
+
+
+pairs.panels(s[,c(3,8,6)], pch=21, 
+main="Pair-wise Scatter Plot of r numerical variables") #to show color grouping
+# change c numbers 
+```
+
+# Check assumptions
+
+ 
+```{r Assumptions, echo = FALSE}
+
+ST <- s$studytime
+SA <- s$absences
+
+# Call lm() on price vs income
+parametric_model <- lm(ST ~ SA)
+
+
+#Plots to check for conditions
+par(mfrow = c(1,2))
+plot(parametric_model)
+```
+ When running a parametric test we must check for normality, constant variance. linearity, and influential points. The residual v fit plot shows a pattern, has all points in each section in a straight line, and shows that the data is not randomly distributed and do not have a constant variance. The normal Q-Q plot has a very noticeable right skew showing the data is not normally distributed. The scale-location plot shows the data is not spread out on an even spread. We see a influential point at 207.There is an outlier in all of the plots at 227 and 185.
+
+# Bootstrap 
+
+Bootstrap linear regression method was run over and over to find the distribution and the 95% confidence interval of the different regression models. 
+
+```{r Bootstrap Regression Distribution, echo = FALSE}
+  
+beta0 <- numeric(1000)
+beta1 <- numeric(1000)
+
+#Create vectors same count as income observations
+bootV <- 1:length(ST) 
+
+#1000 bootstrap {replications
+for(i in 1:1000){
+  #Sample N for a bootstrap sample
+  
+  curS <- sample(bootV, length(ST), replace = TRUE)
+  curA <- ST[curS]
+  curT <- SA[curS]
+  
+  #Perform regression on that sample
+  boot_reg <- lm(curA ~ curS)
+  
+  beta0[i] <- boot_reg$coefficients[1] 
+  
+  beta1[i] <- boot_reg$coefficients[2]  
+}
+
+
+#Plot Beta0 and Beta1 distributions
+par(mfrow = c(1,2))
+hist(beta0, main = "Bootstrap Sampled Intercepts", xlab = "Bootstrap Estimated Beta0s")
+hist(beta1, main = "Bootstrap Sampled Slopes", xlab = "Bootstrap Estimated Beta1s")
+```
+
+When looking at the histogram we see the data is normally distributed.
+
+# Confidence Interval
+
+```{r Bootstrap Confidence Intervals, echo = FALSE}
+
+  beta0_ci <- quantile(beta0, c(0.025, 0.975))
+  beta1_ci <- quantile(beta1, c(0.025, 0.975))
+
+```
+We see that there is a correlation between study time and absences. By using the bootstrap method we were able to come to the conclusion of correlation using a non parametric way.
+
+# Conclusion
+ 
+Based on the results of the simple linear regressions tests run we see the bootstrap method is much better as it repeats the test over and over and therefore gives us a more accurate answer. We see this shown in the histograms as they show the data is normally distributed.
+
+# References
+Zubair, A(2023) "student-mat.csv "      https://www.kaggle.com/uciml/student-alcohol-consumption
